@@ -1,0 +1,17 @@
+<!-- crystal-icon.svg -->
+<svg width="16" height="16" xmlns="http://www.w3.org/2000/svg">
+  <path d="M8 1L14 5V11L8 15L2 11V5L8 1Z" 
+        fill="transparent"
+        stroke="url(#grad)"
+        stroke-width="0.5">
+    <animate attributeName="fill" 
+             values="transparent;#7AE7F555;transparent" 
+             dur="5s" repeatCount="indefinite"/>
+  </path>
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7AE7F5"/>
+      <stop offset="100%" stop-color="#FF6BFF"/>
+    </linearGradient>
+  </defs>
+</svg>

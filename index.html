@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Baby Crystal - 水晶宝宝</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden;
+            /* 设置白色背景作为基底 */
+            background-color: white; 
+        }
+        canvas { display: block; background: white; }
+
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(205, 255, 235, 0.67);
+            padding: 10px;
+            border-radius: 5px;
+            min-width: 20em;
+            font-size: 1.25em;
+            /* max-width: 50%; */
+        }
+
+        .controls input {
+            font-size: 1em;
+            margin: 0.25em 0 0.25em;
+        }
+
+        .controls button {
+            /* position: absolute;
+            bottom: 10px;
+            right: 10px; */
+            background-color: rgba(235, 205, 255, 0.67);
+            padding: 0.5em;
+            border-radius: 5px;
+            /* min-width: 20em; */
+            /* font-size: 1em; */
+            /* max-width: 50%; */
+        }
+
+        #exportButton,#toggleControlsButton {
+            position: absolute;
+            padding: 0.5em;
+            right: 0.5em;
+            border-radius: 0.5em;
+        }
+
+        #toggleControlsButton {
+            bottom: 0.5em;
+            background-color: rgba(255, 205, 235, 0.67);
+        }
+
+        #exportButton {
+            /* right: 9.5em; */
+            bottom: 3.8em;
+            background-color: rgba(205, 255, 235, 0.67);
+        }
+
+        /* 确保输入框可以正常显示和交互 */
+        input[type="number"],
+        input[type="range"],
+        input[type="color"] {
+            display: inline-block;
+            margin-bottom: 5px;
+        }
+
+        /* 定义毛玻璃效果类 */
+        .blur-effect {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 确保 controls 和 toggleControlsButton 不应用毛玻璃效果 */
+        .controls,#exportButton,
+        #toggleControlsButton {
+            z-index: 2;
+        }
+
+        .payment-method {
+            margin: 0.25em 0;
+        }
+
+        .amount-btns button {
+            margin: 0 0.25em 0;
+            padding: 0.5em 0.5em;
+            /* background: #4CAF50; */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .wc button{
+            background: #4CAF50;
+        }
+
+        .alp button{
+            background: #5050AF;
+        }
+
+        .qr-code {
+            width: 10em;
+            /* height: 200px; */
+            margin-top: 1em;
+            display: none; /* 默认隐藏 */
+        }
+    </style>
+    <link rel="shortcut icon" href="fvc.svg" type="image/x-icon">
+</head>
+<body>
+    <!-- 新增控件区域 -->
+    <div class="controls" style="display: none;">
+        <label for="initialSize" data-lang-key="initialSizeLabel">初始大小</label>
+        <input type="number" id="initialSize" value="0.1" min="0.01" max="1" step="0.01">
+        <input type="range" id="initialSizeRange" value="0.1" min="0.01" max="1" step="0.01">
+        <br>
+        <label for="growthRate" data-lang-key="growthRateLabel">生长速度</label>
+        <input type="number" id="growthRate" value="0.001" min="0.0001" max="0.01" step="0.0001">
+        <input type="range" id="growthRateRange" value="0.001" min="0.0001" max="0.01" step="0.0001">
+        <br>
+        <label for="maxSize" data-lang-key="maxSizeLabel">最大大小</label>
+        <input type="number" id="maxSize" value="0.5" min="0.1" max="2" step="0.01">
+        <input type="range" id="maxSizeRange" value="0.5" min="0.1" max="2" step="0.01">
+        <br>
+        <!-- 新增控制水晶宝宝数量的控件 -->
+        <label for="ballCount" data-lang-key="ballCountLabel">水晶宝宝数量</label>
+        <input type="number" id="ballCount" value="30" min="1" max="100" step="1">
+        <input type="range" id="ballCountRange" value="30" min="1" max="100" step="1">
+        <br>
+        <!-- 新增更改背景颜色的控件 -->
+        <label for="backgroundColor" data-lang-key="backgroundColorLabel">背景颜色</label>
+        <input type="color" id="backgroundColor" value="#ffffff">
+        <br>
+        <label for="backgroundAlpha" data-lang-key="backgroundAlphaLabel">背景透明度:</label>
+        <input type="range" id="backgroundAlpha" value="1" min="0" max="1" step="0.01">
+        <br>
+        <!-- 新增更改 container_size 的控件 -->
+        <label for="containerSize" data-lang-key="containerSizeLabel">容器大小</label>
+        <input type="number" id="containerSize" value="15" min="5" max="50" step="1">
+        <input type="range" id="containerSizeRange" value="15" min="5" max="50" step="1">
+        <br>
+        <!-- 支付宝 -->
+        <div class="payment-method">
+            <div class="amount-btns alp">
+                <label for="dnalp" data-lang-key="donateViaAlipay">支付宝打赏</label>
+                <button onclick="showQR('alipay', 1)">￥1</button>
+                <button onclick="showQR('alipay', 5)">￥5</button>
+                <button onclick="showQR('alipay', 10)">￥10</button>
+            </div>
+            <img id="alipay-qr" src="./alipay1.jpg" class="qr-code" style="display: none;">
+        </div>
+        <!-- 微信 -->
+        <div class="payment-method wc">
+            <div class="amount-btns">
+                <label for="dnowc" data-lang-key="donateViaWeixin">微信打赏</label>
+                <button onclick="showQR('wechat', 1)">￥1</button>
+                <button onclick="showQR('wechat', 5)">￥5</button>
+                <button onclick="showQR('wechat', 10)">￥10</button>
+            </div>
+            <img id="wechat-qr" src="./wechat1.png" class="qr-code" style="display: none;">
+        </div>
+        <!-- 新增语言切换按钮 -->
+        <button id="languageButton" data-lang-key="changeLangLabel">English</button>
+    </div>
+
+    <!-- 打赏功能 -->
+    <script>
+        // 显示对应金额的二维码
+        function showQR(type, amount) {
+            const qrMap = {
+                alipay: {
+                    1: './alipay1.jpg',
+                    5: './alipay5.jpg',
+                    10: './alipay10.jpg'
+                },
+                wechat: {
+                    1: './wechat1.png',
+                    5: './wechat5.png',
+                    10: './wechat10.png'
+                }
+            };
+            
+            const qrElement = document.getElementById(`${type}-qr`);
+            // qrElement.src = qrMap[type][amount];
+            // if (qrElement.style.display === 'none') {
+            //     qrElement.style.display = 'block'; 
+            // }else{
+            //     qrElement.style.display = 'none';
+            // }
+            const expectedSrc = new URL(qrMap[type][amount], window.location.href).href;
+            const currentSrc = new URL(qrElement.src, window.location.href).href;
+            if (qrElement.style.display === 'block' && expectedSrc === currentSrc) {
+                // 如果当前显示的二维码和点击按钮对应的二维码相同，则隐藏
+                qrElement.style.display = 'none';
+            } else {
+                // 否则切换显示对应二维码
+                qrElement.src = qrMap[type][amount];
+                qrElement.style.display = 'block';
+            }
+        }
+    </script>
+
+    <!-- 添加资源检查 -->
+    <script>
+        // 在页面加载时添加资源检查
+        window.addEventListener('load', () => {
+            const qrImages = document.querySelectorAll('.qr-code');
+            
+            qrImages.forEach(img => {
+                img.onerror = () => {
+                console.error(`Failed to load: ${img.src}`);
+                img.style.display = 'none';
+                alert('二维码加载失败，请联系管理员');
+                };
+                
+                // 添加缓存破坏参数
+                img.src += `?v=${new Date().getTime()}`;
+            });
+        });
+    </script>
+
+    <!-- 新增导出按钮 -->
+    <button id="exportButton" data-lang-key="exportButtonLabel">导出网页为图片</button>
+    <br>
+    <button id="toggleControlsButton" data-lang-key="toggleControlsButtonLabel">显示控制面板</button>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- 切换语言 -->
+    <script>
+        // 语言资源
+        const languages = {
+            zh: {
+                // changeLangLabel: "English",
+                initialSizeLabel: "初始大小",
+                growthRateLabel: "生长速度",
+                maxSizeLabel: "最大大小",
+                ballCountLabel: "水晶宝宝数量",
+                backgroundColorLabel: "背景颜色",
+                backgroundAlphaLabel: "背景透明度:",
+                containerSizeLabel: "容器大小",
+                exportButtonLabel: "导出网页为图片",
+                toggleControlsButtonLabel: "隐藏控制面板",
+                donateViaAlipay: "支付宝打赏",
+                donateViaWeixin: "微信打赏",
+                languageButtonLabel: "English"
+            },
+            en: {
+                changeLangLabel: "简体中文",
+                initialSizeLabel: "Initial Size",
+                growthRateLabel: "Growth Rate",
+                maxSizeLabel: "Max Size",
+                ballCountLabel: "Ball Count",
+                backgroundColorLabel: "Background Color",
+                backgroundAlphaLabel: "Background Alpha:",
+                containerSizeLabel: "Container Size",
+                exportButtonLabel: "Export Page as Image",
+                toggleControlsButtonLabel: "Hide Control Panel",
+                donateViaAlipay: "Donate via Alipay",
+                donateViaWeixin: "Donate via Weixin",
+                languageButtonLabel: "简体中文"
+            }
+        };
+
+        let currentLanguage = 'zh';
+
+        // 切换语言的函数
+        function switchLanguage() {
+            currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
+            const elements = document.querySelectorAll('[data-lang-key]');
+            elements.forEach(element => {
+                const key = element.getAttribute('data-lang-key');
+                element.textContent = languages[currentLanguage][key];
+            });
+            const languageButton = document.getElementById('languageButton');
+            languageButton.textContent = languages[currentLanguage].languageButtonLabel;
+        }
+
+        // 为语言切换按钮添加点击事件监听器
+        const languageButton = document.getElementById('languageButton');
+        languageButton.addEventListener('click', switchLanguage);
+
+        console.log("For more information, please e-mail me at: jack201806@outlook.com");
+    </script>
+    
+    <!-- 切换控件显示/隐藏 -->
+    <script>
+        // 获取隐藏/显示按钮元素
+        const toggleControlsButton = document.getElementById('toggleControlsButton');
+        // 获取控件区域元素
+        const controlsDiv = document.querySelector('.controls');
+
+        // 切换控件区域显示和隐藏的函数
+        function toggleControls() {
+            const key = toggleControlsButton.getAttribute('data-lang-key');
+            if (controlsDiv.style.display === 'none') {
+                // languages[currentLanguage].toggleControlsButtonLabel = currentLanguage === 'zh' ? '显示控制面板' : 'Show Control Panel';
+                languages[currentLanguage].toggleControlsButtonLabel = currentLanguage === 'zh' ? '隐藏控制面板' : 'Hide Control Panel';
+            } else {
+                // languages[currentLanguage].toggleControlsButtonLabel = currentLanguage === 'zh' ? '隐藏控制面板' : 'Hide Control Panel';
+                languages[currentLanguage].toggleControlsButtonLabel = currentLanguage === 'zh' ? '显示控制面板' : 'Show Control Panel';
+            }
+            toggleControlsButton.textContent = languages[currentLanguage][key];
+            controlsDiv.style.display = controlsDiv.style.display === 'none' ? 'inline-block' : 'none';
+        }
+
+        // 为隐藏/显示按钮添加点击事件监听器
+        toggleControlsButton.addEventListener('click', toggleControls);
+    </script>
+    
+    <script>
+        let scene, camera, renderer;
+        let crystals = [];
+        let BALL_COUNT = 60;
+        let CONTAINER_SIZE = 15;
+        let isRendering = false; // 新增标志位
+
+        // 获取控件元素
+        const initialSizeInput = document.getElementById('initialSize');
+        const initialSizeRange = document.getElementById('initialSizeRange');
+        const growthRateInput = document.getElementById('growthRate');
+        const growthRateRange = document.getElementById('growthRateRange');
+        const maxSizeInput = document.getElementById('maxSize');
+        const maxSizeRange = document.getElementById('maxSizeRange');
+        const ballCountInput = document.getElementById('ballCount');
+        const ballCountRange = document.getElementById('ballCountRange');
+        const backgroundColorInput = document.getElementById('backgroundColor');
+        const backgroundAlphaInput = document.getElementById('backgroundAlpha');
+        const containerSizeInput = document.getElementById('containerSize');
+        const containerSizeRange = document.getElementById('containerSizeRange');
+
+        // 同步输入框和进度条的值
+        function syncInputs(input, range) {
+            input.value = range.value;
+            range.value = input.value;
+        }
+        
+        // 重新初始化场景和水晶宝宝
+        function reinitialize() {
+            // 清空现有水晶宝宝
+            crystals.forEach(crystal => {
+                scene.remove(crystal.mesh);
+            });
+            crystals = [];
+
+            // 更新参数
+            BALL_COUNT = parseInt(ballCountInput.value);
+            CONTAINER_SIZE = parseInt(containerSizeInput.value);
+            // scene.background = new THREE.Color(backgroundColorInput.value);
+            const colorHex = backgroundColorInput.value;
+            const alpha = parseFloat(backgroundAlphaInput.value);
+            const r = parseInt(colorHex.slice(1, 3), 16);
+            const g = parseInt(colorHex.slice(3, 5), 16);
+            const b = parseInt(colorHex.slice(5, 7), 16);
+            const color = new THREE.Color(r / 255, g / 255, b / 255);
+            renderer.setClearColor(color, alpha);
+
+            // scene.background = new THREE.Color(`rgba(${r}, ${g}, ${b}, ${alpha})`);
+
+            /* const alpha = parseFloat(backgroundAlphaInput.value);
+            const r = parseInt(colorHex.slice(1, 3), 16);
+            const g = parseInt(colorHex.slice(3, 5), 16);
+            const b = parseInt(colorHex.slice(5, 7), 16); */
+            /* const color = new THREE.Color(r / 255, g / 255, b / 255);
+            renderer.setClearColor(color, alpha); */
+
+            // 重新创建水晶宝宝
+            for (let i = 0; i < BALL_COUNT; i++) {
+                const crystal = new Crystal();
+                crystals.push(crystal);
+                scene.add(crystal.mesh);
+            }
+        }
+
+        function reinit_2(){
+            // 更新背景颜色和透明度
+            const colorHex = backgroundColorInput.value;
+            const alpha = parseFloat(backgroundAlphaInput.value);
+            const r = parseInt(colorHex.slice(1, 3), 16);
+            const g = parseInt(colorHex.slice(3, 5), 16);
+            const b = parseInt(colorHex.slice(5, 7), 16);
+            const color = new THREE.Color(r / 255, g / 255, b / 255);
+            renderer.setClearColor(color, alpha);
+
+            // 更新容器大小
+            CONTAINER_SIZE = parseInt(containerSizeInput.value);
+        }
+
+        // 为输入框和进度条添加事件监听器
+        initialSizeInput.addEventListener('input', () => {
+            syncInputs(initialSizeInput, initialSizeRange);
+            reinitialize();
+        });
+        initialSizeRange.addEventListener('input', () => {
+            syncInputs(initialSizeInput, initialSizeRange);
+            reinitialize();
+        });
+        growthRateInput.addEventListener('input', () => {
+            syncInputs(growthRateInput, growthRateRange);
+            reinitialize();
+        });
+        growthRateRange.addEventListener('input', () => {
+            syncInputs(growthRateInput, growthRateRange);
+            reinitialize();
+        });
+        maxSizeInput.addEventListener('input', () => {
+            syncInputs(maxSizeInput, maxSizeRange);
+            reinitialize();
+        });
+        maxSizeRange.addEventListener('input', () => {
+            syncInputs(maxSizeInput, maxSizeRange);
+            reinitialize();
+        });
+        ballCountInput.addEventListener('input', () => {
+            syncInputs(ballCountInput, ballCountRange);
+            reinitialize();
+        });
+        ballCountRange.addEventListener('input', () => {
+            syncInputs(ballCountInput, ballCountRange);
+            reinitialize();
+        });
+        containerSizeInput.addEventListener('input', () => {
+            syncInputs(containerSizeInput, containerSizeRange);
+            reinit_2();
+        });
+        containerSizeRange.addEventListener('input', () => {
+            syncInputs(containerSizeInput, containerSizeRange);
+            reinit_2();
+        });
+        
+        backgroundColorInput.addEventListener('input', reinit_2);
+        backgroundAlphaInput.addEventListener('input', reinit_2);
+
+        class Crystal {
+            constructor() {
+                // // 初始大小
+                // this.initialSize = 0.1; 
+
+                // 从输入框获取初始大小
+                this.initialSize = parseFloat(initialSizeInput.value); 
+                this.geometry = new THREE.SphereGeometry(this.initialSize, 32, 32);
+                this.material = new THREE.MeshPhongMaterial({
+                    color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6),
+                    transparent: true,
+                    opacity: 0.9,
+                    specular: 0xffffff,
+                    shininess: 200, // 增加光泽度，使水晶更亮
+                    reflectivity: 0.8, // 增加反射率
+                    refractionRatio: 0.98 // 增加折射效果
+                });
+                this.mesh = new THREE.Mesh(this.geometry, this.material);
+                this.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1
+                );
+                
+                // 初始化随机位置
+                this.mesh.position.set(
+                    (Math.random() - 0.5) * CONTAINER_SIZE,
+                    (Math.random() - 0.5) * CONTAINER_SIZE,
+                    (Math.random() - 0.5) * CONTAINER_SIZE
+                );
+
+                // // 生长速度
+                // this.growthRate = 0.001; 
+                // // 最大大小
+                // this.maxSize = 0.5; 
+
+                // 从输入框获取生长速度
+                this.growthRate = parseFloat(growthRateInput.value); 
+                // 从输入框获取最大大小
+                this.maxSize = parseFloat(maxSizeInput.value); 
+            }
+
+            update() {
+                // 边界碰撞检测
+                ['x', 'y', 'z'].forEach(axis => {
+                    if (Math.abs(this.mesh.position[axis]) > CONTAINER_SIZE) {
+                        this.velocity[axis] *= -0.8; // 弹性衰减
+                        this.mesh.position[axis] = CONTAINER_SIZE * 
+                            Math.sign(this.mesh.position[axis]);
+                    }
+                });
+
+                // 更新位置
+                this.mesh.position.add(this.velocity);
+                
+                // 裸眼3D效果：根据深度调整透明度
+                const depth = Math.abs(this.mesh.position.z) / CONTAINER_SIZE;
+                this.material.opacity = 0.9 - depth * 0.3;
+
+                
+                // 让水晶宝宝生长
+                if (this.geometry.parameters.radius < this.maxSize) {
+                    this.geometry.parameters.radius += this.growthRate;
+                    this.geometry.dispose();
+                    this.geometry = new THREE.SphereGeometry(this.geometry.parameters.radius, 32, 32);
+                    this.mesh.geometry = this.geometry;
+                }
+            }
+        }
+
+        function init() {
+            // 场景初始化
+            scene = new THREE.Scene();
+
+            // 设置场景背景颜色为白色
+            // scene.background = new THREE.Color(0xffffff);
+            /* const colorHex = backgroundColorInput.value;
+            const alpha = parseFloat(backgroundAlphaInput.value);
+            const r = parseInt(colorHex.slice(1, 3), 16);
+            const g = parseInt(colorHex.slice(3, 5), 16);
+            const b = parseInt(colorHex.slice(5, 7), 16); */
+
+            // scene.background = new THREE.Color(`rgba(${r}, ${g}, ${b}, ${alpha})`);
+            // const color = new THREE.Color(r / 255, g / 255, b / 255);
+
+            // scene.background = new THREE.Color(backgroundColorInput.value);
+            
+            const colorHex = backgroundColorInput.value;
+            const alpha = parseFloat(backgroundAlphaInput.value);
+            const r = parseInt(colorHex.slice(1, 3), 16);
+            const g = parseInt(colorHex.slice(3, 5), 16);
+            const b = parseInt(colorHex.slice(5, 7), 16);
+            const color = new THREE.Color(r / 255, g / 255, b / 255);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+            renderer.setClearColor(color, alpha);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            document.body.appendChild(renderer.domElement);
+            
+            // 灯光设置
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            const pointLight = new THREE.PointLight(0xffffff, 1);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
+
+            // 创建水晶宝宝
+            for (let i = 0; i < BALL_COUNT; i++) {
+                const crystal = new Crystal();
+                crystals.push(crystal);
+                scene.add(crystal.mesh);
+            }
+
+            camera.position.z = 25;
+            
+            // 自动旋转视角
+            camera.position.x = 15;
+            camera.lookAt(0, 0, 0);
+        }
+        
+        let lastRenderTime = 0;
+        const renderInterval = 1000 / 30; // 30 FPS
+
+        function animate() {
+            const currentTime = Date.now();
+            if (currentTime - lastRenderTime >= renderInterval) {
+                requestAnimationFrame(animate);
+                // ... 已有代码 ...
+                
+                // requestAnimationFrame(animate);
+                isRendering = false; // 标记渲染完成
+                
+                // 更新每个水晶的位置和状态
+                crystals.forEach((crystal, index) => {
+                    crystal.update()
+                
+                    // 新增：每个水晶宝宝有 0.1% 的概率分裂
+                    if (Math.random() < 0.001) {
+                        // 生成3到5之间的随机整数
+                        const CONST_NUMBER = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
+                        const splitCount = CONST_NUMBER; // 分裂成 2 个，可以根据需要调整
+                        for (let i = 0; i < splitCount; i++) {
+                            const newCrystal = new Crystal();
+                            // 新水晶宝宝继承原水晶宝宝的位置
+                            newCrystal.mesh.position.copy(crystal.mesh.position);
+                            crystals.push(newCrystal);
+                            scene.add(newCrystal.mesh);
+                        }
+                        // 移除原水晶宝宝
+                        scene.remove(crystal.mesh);
+                        crystals.splice(index, 1);
+                    }
+                });
+                
+                // 新增：检查是否需要增殖水晶宝宝
+                /* if (Math.random() < 0.01) { // 1% 的概率增殖
+                    const newCrystal = new Crystal();
+                    crystals.push(newCrystal);
+                    scene.add(newCrystal.mesh);
+                } */
+
+                // 裸眼3D视角旋转
+                camera.position.x = Math.sin(Date.now() * 0.001) * 20;
+                camera.position.z = Math.cos(Date.now() * 0.001) * 20;
+                camera.lookAt(0, 0, 0);
+
+                renderer.render(scene, camera);
+                isRendering = true; // 标记渲染完成
+                renderer.render(scene, camera);
+                lastRenderTime = currentTime;
+            } else {
+                requestAnimationFrame(animate);
+            }
+            
+        }
+
+        // 导出为 PNG 图像的函数
+        function exportAsPNG() {
+            if (isRendering) {
+                // 强制更新渲染
+                renderer.render(scene, camera);
+                setTimeout(() => {
+                    // 再次检查渲染状态
+                    renderer.render(scene, camera);
+                    const dataURL = renderer.domElement.toDataURL('image/png');
+                    const link = document.createElement('a');
+                    link.href = dataURL;
+                    link.download = 'scene.png';
+                    link.click();
+                }, 1000);
+            } else {
+                alert('渲染未完成，请稍后再试。');
+            }
+        }
+
+        // 为导出按钮添加点击事件监听器
+        exportButton.addEventListener('click', exportAsPNG);
+
+        // 窗口自适应
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        init();
+        animate();
+    </script>
+    
+</body>
+</html>
